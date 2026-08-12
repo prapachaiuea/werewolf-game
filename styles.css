@@ -1,0 +1,621 @@
+/* ============================================================
+   WEREWOLF — "หมาป่าอยู่ในหมู่บ้าน"
+   A party game about who you can trust after dark. Moonlit and
+   hushed rather than gory: a village at night, not a slasher
+   film. Cold blues for the quiet of night, one warning red for
+   the moment someone doesn't wake up.
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0b1020;
+  --surface: #141c33;
+  --surface-alt: #1c2640;
+  --surface-raised: #24304f;
+
+  --text: #f3f5ff;
+  --text-muted: #99a3c4;
+  --text-faint: #656f92;
+
+  /* Moonlight blue — the village's color. Calm, watchful. */
+  --accent: #7ea2ff;
+  --accent-soft: rgba(126, 162, 255, 0.18);
+  --accent-strong: #a9c1ff;
+
+  /* Blood red — the wolves' color. Used sparingly, for danger only. */
+  --blood: #ff4d5e;
+  --blood-soft: rgba(255, 77, 94, 0.18);
+
+  /* Amber — the seer's color, a lantern in the dark. */
+  --gold: #ffc857;
+  --gold-soft: rgba(255, 200, 87, 0.18);
+
+  --win: #4ade80;
+  --win-soft: rgba(74, 222, 128, 0.16);
+  --lose: #ff4d5e;
+
+  --border: #26314d;
+  --border-strong: #34405f;
+  --radius: 18px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  --font-display: "Fredoka", "Arial Rounded MT Bold", sans-serif;
+  --font-body: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* Two cold moonlit glows, low in the corners — a village at night, not a void. */
+.party-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 620px 460px at 8% -6%, rgba(126, 162, 255, 0.14), transparent 60%),
+    radial-gradient(ellipse 620px 460px at 92% 4%, rgba(255, 200, 87, 0.08), transparent 60%);
+}
+
+.app-header,
+#app,
+.toast {
+  position: relative;
+  z-index: 1;
+}
+
+.app-header {
+  width: 100%;
+  max-width: 480px;
+  padding: 1.75rem 1.25rem 0;
+  text-align: center;
+}
+
+.party-eyebrow {
+  margin: 0 0 0.2rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent-strong);
+}
+
+.app-header h1 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.wink {
+  display: inline-block;
+  margin-left: 0.3rem;
+  animation: wink 3.6s ease-in-out infinite;
+  transform-origin: 60% 60%;
+}
+
+@keyframes wink {
+  0%, 82%, 100% { transform: rotate(0deg) scale(1); }
+  86% { transform: rotate(-10deg) scale(1.15); }
+  90% { transform: rotate(6deg) scale(1); }
+}
+
+.room-code {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-top: 0.5rem;
+}
+
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 0.4rem 0.85rem 0.4rem 0.7rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.nav-pill svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.nav-pill:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.nav-pill-home:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.nav-pill-leave:hover:not(:disabled) {
+  border-color: var(--blood);
+  color: var(--blood);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.mute-toggle {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.4rem;
+  opacity: 0.7;
+}
+
+.mute-toggle:hover {
+  opacity: 1;
+}
+
+#app {
+  width: 100%;
+  max-width: 480px;
+  padding: 1rem 1.25rem 3rem;
+}
+
+.view {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 20px 44px -22px rgba(0, 0, 0, 0.65);
+}
+
+.view[hidden] {
+  display: none;
+}
+
+.view h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.tagline {
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0 0 0.25rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+input[type="text"] {
+  background: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--text);
+}
+
+input[type="text"]:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+select {
+  background: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--text);
+}
+
+select:disabled {
+  opacity: 0.55;
+}
+
+/* Pill buttons. */
+button {
+  background: var(--accent);
+  color: #0a1330;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 0.85rem 1.4rem;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 6px 16px -6px rgba(126, 162, 255, 0.45);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 10px 20px -6px rgba(126, 162, 255, 0.55);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+#btn-copy-link {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  box-shadow: none;
+}
+
+.join-alt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.divider {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-weight: 600;
+  position: relative;
+}
+
+.error-text {
+  color: var(--lose);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.share-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.share-row input {
+  flex: 1;
+}
+
+/* Player chips — soft pill tags for the roster. */
+.player-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.player-chip {
+  background: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.player-chip.offline {
+  opacity: 0.45;
+}
+
+.player-chip.is-dead {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.player-chip.is-werewolf {
+  border-color: var(--blood);
+  box-shadow: 0 0 0 1px var(--blood-soft);
+  background: var(--blood-soft);
+}
+
+.vote-option {
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.vote-btn {
+  width: 100%;
+  text-align: left;
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.vote-btn.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.vote-btn.selected.danger {
+  border-color: var(--blood);
+  box-shadow: 0 0 0 2px var(--blood-soft);
+  background: var(--blood-soft);
+  color: var(--blood);
+}
+
+/* Role reveal — a card flip, like turning a face-down card at the table. */
+.role-card {
+  background: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 1.9rem 1.5rem;
+  text-align: center;
+  perspective: 900px;
+}
+
+.role-card > * {
+  animation: card-flip 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+@keyframes card-flip {
+  0% { transform: rotateY(-90deg); opacity: 0; }
+  60% { transform: rotateY(8deg); opacity: 1; }
+  100% { transform: rotateY(0deg); opacity: 1; }
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 0.4rem 1.1rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.9rem;
+}
+
+.role-werewolf {
+  background: var(--blood-soft);
+  color: var(--blood);
+  border: 1px solid var(--blood);
+}
+
+.role-seer {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border: 1px solid var(--gold);
+}
+
+.role-doctor {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border: 1px solid var(--accent);
+}
+
+.role-hunter {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border: 1px solid var(--gold);
+}
+
+.role-villager {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+}
+
+.role-card p {
+  margin: 0 0 0.4rem;
+}
+
+/* Character portraits sit on their own solid-black square (the images aren't cut out), so
+   they're masked into a circle with a glowing ring in the role's own color — reads as a
+   deliberate "trading card" badge rather than a stray black box. */
+.role-card-portrait {
+  display: block;
+  width: 140px;
+  height: 140px;
+  margin: 0.2rem auto 0.9rem;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #000;
+  border: 3px solid var(--border-strong);
+  box-shadow: 0 0 0 4px var(--surface-alt), 0 10px 26px -10px rgba(0, 0, 0, 0.65);
+}
+
+.role-portrait-werewolf {
+  border-color: var(--blood);
+  box-shadow: 0 0 0 4px var(--blood-soft), 0 0 28px -4px var(--blood), 0 10px 26px -10px rgba(0, 0, 0, 0.65);
+}
+
+.role-portrait-seer,
+.role-portrait-hunter {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 4px var(--gold-soft), 0 0 28px -4px var(--gold), 0 10px 26px -10px rgba(0, 0, 0, 0.65);
+}
+
+.role-portrait-doctor {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft), 0 0 28px -4px var(--accent), 0 10px 26px -10px rgba(0, 0, 0, 0.65);
+}
+
+/* Small inline avatar next to each name on the game-over reveal list. */
+.player-chip-with-avatar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.role-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #000;
+  border: 1px solid var(--border-strong);
+}
+
+.countdown {
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.preround-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.preround-overlay[hidden] {
+  display: none;
+}
+
+.preround-number {
+  font-family: var(--font-display);
+  font-size: min(45vw, 14rem);
+  font-weight: 700;
+  color: var(--accent-strong);
+  text-shadow: 0 0 40px var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+  animation: preround-pulse 1s ease-in-out;
+}
+
+@keyframes preround-pulse {
+  0% { transform: scale(1.3); opacity: 0; }
+  30% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.results-banner {
+  font-family: var(--font-display);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.results-banner.win {
+  color: var(--win);
+}
+
+.results-banner.lose {
+  color: var(--lose);
+}
+
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button-row button {
+  flex: 1;
+}
+
+.spectate-note {
+  background: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 0.7rem 1.2rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 500;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.toast-error {
+  border-color: var(--lose);
+  color: var(--lose);
+}

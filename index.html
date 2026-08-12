@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>หมาป่าอยู่ในหมู่บ้าน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="party-glow" aria-hidden="true"></div>
+  <div id="preround-overlay" class="preround-overlay" hidden>
+    <div id="preround-number" class="preround-number"></div>
+  </div>
+  <header class="app-header">
+    <p class="party-eyebrow">มีคนในหมู่บ้านไม่ใช่คน...</p>
+    <h1>หมาป่าอยู่ในหมู่บ้าน<span class="wink">🐺</span></h1>
+    <p class="room-code" id="room-code-display" hidden></p>
+    <div class="header-controls">
+      <a id="btn-back-home" class="nav-pill nav-pill-home" href="https://prapachaiuea.github.io/party-games/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></svg>
+        <span>หน้าแรก</span>
+      </a>
+      <button id="btn-mute-music" type="button" class="mute-toggle" aria-pressed="false" title="เปิด/ปิดเสียง">🔊</button>
+      <button id="btn-leave-room" type="button" class="nav-pill nav-pill-leave" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+        <span>ออกจากห้อง</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="app">
+    <section id="view-landing" class="view">
+      <p class="tagline">คืนหนึ่ง หมาป่าจะแฝงตัวอยู่ในหมู่บ้าน ทุกคืนพวกมันจะล่าเหยื่อ ทุกวันหมู่บ้านต้องโหวตกำจัดคนที่สงสัยว่าเป็นหมาป่า — รอดให้ถึงเช้าหรือจับหมาป่าให้ได้ก่อนที่มันจะครองหมู่บ้าน</p>
+      <form id="form-landing">
+        <label>
+          ชื่อของคุณ
+          <input id="input-name" type="text" maxlength="20" required autocomplete="off" placeholder="เช่น บีม" />
+        </label>
+        <p id="landing-join-row" class="hint" hidden>กำลังเข้าร่วมห้อง <strong id="landing-room-code"></strong></p>
+        <button type="submit" id="btn-primary-action">สร้างห้อง</button>
+      </form>
+
+      <div id="landing-join-alt" class="join-alt">
+        <div class="divider">หรือเข้าร่วมด้วยรหัสห้อง</div>
+        <label>
+          รหัสห้อง
+          <input id="input-room-code" type="text" maxlength="6" autocomplete="off" placeholder="ABCDE" style="text-transform:uppercase" />
+        </label>
+        <button type="button" id="btn-join-room">เข้าร่วมห้อง</button>
+      </div>
+
+      <p class="error-text" id="landing-error" hidden></p>
+    </section>
+
+    <section id="view-lobby" class="view" hidden>
+      <h2>ห้องรอ</h2>
+      <p>ส่งลิงก์นี้ให้เพื่อน ๆ:</p>
+      <div class="share-row">
+        <input id="share-link" type="text" readonly />
+        <button id="btn-copy-link" type="button">คัดลอก</button>
+      </div>
+      <ul id="player-list" class="player-list"></ul>
+      <label>
+        เวลาพูดคุยตอนกลางวัน
+        <select id="select-day-duration">
+          <option value="120000">2 นาที</option>
+          <option value="180000" selected>3 นาที (แนะนำ)</option>
+          <option value="240000">4 นาที</option>
+          <option value="300000">5 นาที</option>
+        </select>
+      </label>
+      <p id="lobby-hint" class="hint"></p>
+      <button id="btn-start-game" type="button" hidden>เริ่มเกม</button>
+    </section>
+
+    <section id="view-role-reveal" class="view" hidden>
+      <h2>บทบาทของคุณ</h2>
+      <div id="role-card" class="role-card"></div>
+      <button id="btn-start-night" type="button" hidden>เริ่มคืนแรก</button>
+      <p id="role-reveal-hint" class="hint"></p>
+    </section>
+
+    <section id="view-night-werewolf" class="view" hidden>
+      <h2>🐺 คืนนี้: หมาป่าล่าเหยื่อ</h2>
+      <p id="night-recap" class="hint"></p>
+      <div id="night-werewolf-content"></div>
+      <button id="btn-advance-werewolf-night" type="button" hidden>ไปยังหมอดู</button>
+      <p id="night-werewolf-hint" class="hint"></p>
+    </section>
+
+    <section id="view-night-seer" class="view" hidden>
+      <h2>🔮 คืนนี้: หมอดูตรวจสอบ</h2>
+      <div id="night-seer-content"></div>
+      <button id="btn-reveal-seer-check" type="button" hidden>เปิดผลตรวจ</button>
+      <button id="btn-continue-after-seer" type="button" hidden>ไปต่อ</button>
+      <p id="night-seer-hint" class="hint"></p>
+    </section>
+
+    <section id="view-night-doctor" class="view" hidden>
+      <h2>💊 คืนนี้: หมอปกป้อง</h2>
+      <div id="night-doctor-content"></div>
+      <button id="btn-advance-doctor-night" type="button" hidden>ไปยังกลางวัน</button>
+      <p id="night-doctor-hint" class="hint"></p>
+    </section>
+
+    <section id="view-hunter-revenge" class="view" hidden>
+      <h2>🏹 ยิงแก้แค้น</h2>
+      <div id="hunter-revenge-content"></div>
+      <button id="btn-continue-after-hunter" type="button" hidden>ไปต่อ</button>
+      <p id="hunter-revenge-hint" class="hint"></p>
+    </section>
+
+    <section id="view-day" class="view" hidden>
+      <h2>☀️ กลางวัน</h2>
+      <p id="day-recap" class="hint"></p>
+      <div id="countdown" class="countdown">--:--</div>
+      <p class="hint">พูดคุยกันนอกแอปว่าใครน่าสงสัยที่สุด แล้วเตรียมโหวต!</p>
+      <button id="btn-go-to-vote" type="button" hidden>เริ่มโหวต</button>
+    </section>
+
+    <section id="view-day-vote" class="view" hidden>
+      <h2>🗳️ ใครคือหมาป่า?</h2>
+      <ul id="vote-list" class="player-list"></ul>
+      <p id="voting-hint" class="hint"></p>
+      <button id="btn-reveal-vote" type="button" hidden>เปิดเผยผลโหวต</button>
+    </section>
+
+    <section id="view-game-over" class="view" hidden>
+      <h2 id="results-banner" class="results-banner"></h2>
+      <ul id="results-roles" class="player-list"></ul>
+      <div class="button-row">
+        <button id="btn-play-again" type="button" hidden>เล่นอีกครั้ง</button>
+        <button id="btn-back-to-lobby" type="button" hidden>กลับไป Lobby</button>
+      </div>
+    </section>
+  </main>
+
+  <p id="toast" class="toast" hidden></p>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

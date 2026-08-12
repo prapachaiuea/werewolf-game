@@ -1,0 +1,107 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$roomId": {
+        ".write": "auth != null && !newData.exists() && (auth.uid === data.child('public/host').val() || (data.child('public/createdAt').exists() && now > data.child('public/createdAt').val() + 86400000))",
+        "public": {
+          ".read": "auth != null",
+          "host": {
+            ".write": "auth != null && (!data.exists() || auth.uid === data.val())"
+          },
+          "createdAt": {
+            ".write": "auth != null && !data.exists()"
+          },
+          "roundNumber": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "roles": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "dayDurationMs": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "timer": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "lastNight": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "lastVote": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "hunterRevenge": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "gameOver": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "restartAt": {
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          },
+          "phase": {
+            ".write": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || (root.child('rooms').child($roomId).child('players').child(auth.uid).exists() && data.val() === 'day' && newData.val() === 'day-vote' && now >= root.child('rooms').child($roomId).child('public/timer/startAt').val() + root.child('rooms').child($roomId).child('public/timer/durationMs').val()))"
+          }
+        },
+        "players": {
+          ".read": "auth != null",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && (data.exists() || root.child('rooms').child($roomId).child('public/phase').val() === 'lobby')",
+            "alive": {
+              ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+            }
+          }
+        },
+        "secrets": {
+          "$uid": {
+            ".read": "auth != null && (auth.uid === $uid || auth.uid === root.child('rooms').child($roomId).child('public/host').val())",
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          }
+        },
+        "reveal": {
+          "roles": {
+            ".read": "auth != null && root.child('rooms').child($roomId).child('public/phase').val() === 'game-over' && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()",
+            ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+          }
+        },
+        "night": {
+          "$round": {
+            "werewolf": {
+              "target": {
+                ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'werewolf')",
+                ".write": "auth != null && root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'werewolf' && root.child('rooms').child($roomId).child('public/phase').val() === 'night-werewolf' && root.child('rooms').child($roomId).child('players').child(newData.val()).child('alive').val() === true"
+              }
+            },
+            "seerTarget": {
+              ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer')",
+              ".write": "auth != null && root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer' && root.child('rooms').child($roomId).child('public/phase').val() === 'night-seer' && root.child('rooms').child($roomId).child('players').child(newData.val()).child('alive').val() === true"
+            },
+            "seerResult": {
+              ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer')",
+              ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+            },
+            "doctorSave": {
+              ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'doctor')",
+              ".write": "auth != null && root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'doctor' && root.child('rooms').child($roomId).child('public/phase').val() === 'night-doctor' && root.child('rooms').child($roomId).child('players').child(newData.val()).child('alive').val() === true"
+            }
+          }
+        },
+        "hunterRevenge": {
+          "$round": {
+            "target": {
+              ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'hunter')",
+              ".write": "auth != null && root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'hunter' && root.child('rooms').child($roomId).child('public/phase').val() === 'hunter-revenge' && (newData.val() === 'skip' || root.child('rooms').child($roomId).child('players').child(newData.val()).child('alive').val() === true)"
+            }
+          }
+        },
+        "votes": {
+          ".read": "auth != null && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()",
+          "$uid": {
+            ".write": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || (auth.uid === $uid && root.child('rooms').child($roomId).child('public/phase').val() === 'day-vote' && root.child('rooms').child($roomId).child('players').child(auth.uid).child('alive').val() === true && newData.child('votedFor').exists() && root.child('rooms').child($roomId).child('players').child(newData.child('votedFor').val()).child('alive').val() === true))"
+          }
+        }
+      }
+    }
+  }
+}
