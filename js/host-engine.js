@@ -91,32 +91,54 @@ export function watchForAutoResolve(state) {
     const deathKey = `${roomId}:${round}:night-doctor`;
     if (checkedDeathKey === deathKey) return;
     checkedDeathKey = deathKey;
-    findRoleHolder(roomId, uids, "doctor").then((doctorUid) => {
-      const doctorAlive = doctorUid && players[doctorUid]?.alive !== false;
-      if (!doctorAlive) {
-        skipDeadPhase(roomId, false, hasDoctor);
-      } else {
-        armWatcher(roomId, round, "doctorSave");
-      }
-    });
+    findRoleHolder(roomId, uids, "doctor")
+      .then((doctorUid) => {
+        if (!doctorUid) {
+          // Couldn't find the Doctor at all — most likely this render caught `players` before
+          // it fully synced (a real race, not evidence of anything). Don't guess "dead" from
+          // missing data: reset and let one of the many re-renders that follow try again.
+          checkedDeathKey = null;
+          return;
+        }
+        const doctorAlive = players[doctorUid]?.alive !== false;
+        if (!doctorAlive) {
+          skipDeadPhase(roomId, false, hasDoctor);
+        } else {
+          armWatcher(roomId, round, "doctorSave");
+        }
+      })
+      .catch(() => {
+        // A transient read failure (offline blip, etc.) must not wedge this phase forever —
+        // clear the flag so the next re-render retries instead of leaving the game stuck with
+        // no error the players can even see.
+        checkedDeathKey = null;
+      });
   } else if (phase === "night-seer") {
     const deathKey = `${roomId}:${round}:night-seer`;
     if (checkedDeathKey === deathKey) return;
     checkedDeathKey = deathKey;
-    findRoleHolder(roomId, uids, "seer").then((seerUid) => {
-      const seerAlive = seerUid && players[seerUid]?.alive !== false;
-      if (!seerAlive) {
-        skipDeadPhase(roomId, true, hasDoctor);
-      } else if (!hasDoctor) {
-        // Alive Seer, no Doctor this game — the Seer's own "ไปต่อ" click writes seerReady;
-        // this is what tells host-engine it's safe to resolve.
-        armWatcher(roomId, round, "seerReady");
-      } else {
-        // Alive Seer, Doctor exists — the Seer advances night-seer -> night-doctor themselves
-        // (self-write permission in firebase-rules.json), nothing for the host to watch here.
-        teardownWatcher();
-      }
-    });
+    findRoleHolder(roomId, uids, "seer")
+      .then((seerUid) => {
+        if (!seerUid) {
+          checkedDeathKey = null;
+          return;
+        }
+        const seerAlive = players[seerUid]?.alive !== false;
+        if (!seerAlive) {
+          skipDeadPhase(roomId, true, hasDoctor);
+        } else if (!hasDoctor) {
+          // Alive Seer, no Doctor this game — the Seer's own "ไปต่อ" click writes seerReady;
+          // this is what tells host-engine it's safe to resolve.
+          armWatcher(roomId, round, "seerReady");
+        } else {
+          // Alive Seer, Doctor exists — the Seer advances night-seer -> night-doctor
+          // themselves (self-write permission in firebase-rules.json), nothing to watch here.
+          teardownWatcher();
+        }
+      })
+      .catch(() => {
+        checkedDeathKey = null;
+      });
   } else {
     teardownWatcher();
   }
