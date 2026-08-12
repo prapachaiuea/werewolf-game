@@ -164,10 +164,14 @@ export async function continueAfterSeerNight(roomId) {
   const resultSnap = await get(ref(db, `rooms/${roomId}/night/${round}/seerResult`));
   if (!resultSnap.exists()) throw new Error("SEER_NOT_RESOLVED");
 
-  if (getState().public.roles?.doctor) {
+  const hasDoctor = Boolean(getState().public.roles?.doctor);
+  console.log("[game] continueAfterSeerNight: hasDoctor =", hasDoctor, "round =", round);
+  if (hasDoctor) {
     await update(ref(db, `rooms/${roomId}/public`), { phase: "night-doctor" });
+    console.log("[game] continueAfterSeerNight: wrote phase = night-doctor");
   } else {
     await update(ref(db), { [`rooms/${roomId}/night/${round}/seerReady`]: true });
+    console.log("[game] continueAfterSeerNight: wrote seerReady = true");
   }
 }
 
