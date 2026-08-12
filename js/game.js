@@ -120,7 +120,9 @@ export async function startFirstNight(roomId) {
   await update(ref(db, `rooms/${roomId}/public`), { phase: "night-werewolf" });
 }
 
-// night-werewolf -> night-seer. Requires the werewolves to have already locked in a target.
+// night-werewolf -> night-seer. Called by a werewolf once they've locked in a target — per
+// firebase-rules.json, only a werewolf can make this specific transition, and only once
+// werewolf/target actually exists.
 export async function advanceFromWerewolfNight(roomId) {
   const round = getState().public.roundNumber;
   const targetSnap = await get(ref(db, `rooms/${roomId}/night/${round}/werewolf/target`));
@@ -129,8 +131,9 @@ export async function advanceFromWerewolfNight(roomId) {
 }
 
 // Resolves the seer's check (still inside night-seer — phase does not change here). The
-// seer's own client can't read another player's secret role, so the host (who can) reads it
-// once and writes back only the yes/no verdict for the seer to see on their own screen.
+// seer's own client is granted a narrow, scoped read of exactly this one target's role (see
+// firebase-rules.json — only for the seer, only for their own chosen target, only during
+// night-seer) so they can compute and write their own verdict without any host involvement.
 export async function resolveSeerCheck(roomId) {
   const round = getState().public.roundNumber;
   const targetSnap = await get(ref(db, `rooms/${roomId}/night/${round}/seerTarget`));
@@ -144,27 +147,16 @@ export async function resolveSeerCheck(roomId) {
   });
 }
 
-// night-seer -> night-doctor (or straight to day if this game has no doctor). Called once the
-// seer has had a moment to read their result off-screen.
+// night-seer -> night-doctor. Called by the seer once they've had a moment to read their
+// result off-screen. Only relevant when this game has a Doctor — if not, the seer's turn is
+// the last one for the night, and there's nothing left for a player to trigger: the host's
+// background watcher (host-engine.js) takes over the instant it sees seerResult, the same way
+// it does for the Doctor below.
 export async function continueAfterSeerNight(roomId) {
-  const { public: pub } = getState();
-  const round = pub.roundNumber;
+  const round = getState().public.roundNumber;
   const resultSnap = await get(ref(db, `rooms/${roomId}/night/${round}/seerResult`));
   if (!resultSnap.exists()) throw new Error("SEER_NOT_RESOLVED");
-
-  if (pub.roles?.doctor) {
-    await update(ref(db, `rooms/${roomId}/public`), { phase: "night-doctor" });
-  } else {
-    await resolveNightAndGoToDay(roomId);
-  }
-}
-
-// night-doctor -> day. Requires the doctor to have already locked in who to protect.
-export async function advanceFromDoctorNight(roomId) {
-  const round = getState().public.roundNumber;
-  const saveSnap = await get(ref(db, `rooms/${roomId}/night/${round}/doctorSave`));
-  if (!saveSnap.exists()) throw new Error("NO_DOCTOR_SAVE");
-  await resolveNightAndGoToDay(roomId);
+  await update(ref(db, `rooms/${roomId}/public`), { phase: "night-doctor" });
 }
 
 // Shared tail end of both a night and a day-vote: given the final players/roles state for
@@ -201,8 +193,12 @@ function isHunterDeath(deadUid, roles) {
 
 // Shared tail end of every night: combine the werewolves' target with the doctor's save (if
 // any), kill or spare accordingly, then either hand off to the Hunter's revenge shot or check
-// the win condition and open the day.
-async function resolveNightAndGoToDay(roomId) {
+// the win condition and open the day. Nobody clicks a button to call this directly anymore —
+// it's triggered reactively by host-engine.js the instant it sees the last night role's
+// action land (doctorSave, or seerResult when this game has no Doctor). Exported so
+// host-engine.js can call it; still only ever succeeds when run from the host's own client,
+// since every write inside it targets host-only paths.
+export async function resolveNightAndGoToDay(roomId) {
   const { public: pub, players } = getState();
   const round = pub.roundNumber;
 

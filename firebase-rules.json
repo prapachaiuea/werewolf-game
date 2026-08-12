@@ -41,7 +41,7 @@
             ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
           },
           "phase": {
-            ".write": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || (root.child('rooms').child($roomId).child('players').child(auth.uid).exists() && data.val() === 'day' && newData.val() === 'day-vote' && now >= root.child('rooms').child($roomId).child('public/timer/startAt').val() + root.child('rooms').child($roomId).child('public/timer/durationMs').val()))"
+            ".write": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || (root.child('rooms').child($roomId).child('players').child(auth.uid).exists() && data.val() === 'day' && newData.val() === 'day-vote' && now >= root.child('rooms').child($roomId).child('public/timer/startAt').val() + root.child('rooms').child($roomId).child('public/timer/durationMs').val()) || (root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'werewolf' && data.val() === 'night-werewolf' && newData.val() === 'night-seer' && root.child('rooms').child($roomId).child('night').child(root.child('rooms').child($roomId).child('public/roundNumber').val()).child('werewolf/target').exists()) || (root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer' && data.val() === 'night-seer' && newData.val() === 'night-doctor' && root.child('rooms').child($roomId).child('night').child(root.child('rooms').child($roomId).child('public/roundNumber').val()).child('seerResult').exists()))"
           }
         },
         "players": {
@@ -55,7 +55,7 @@
         },
         "secrets": {
           "$uid": {
-            ".read": "auth != null && (auth.uid === $uid || auth.uid === root.child('rooms').child($roomId).child('public/host').val())",
+            ".read": "auth != null && (auth.uid === $uid || auth.uid === root.child('rooms').child($roomId).child('public/host').val() || (root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer' && root.child('rooms').child($roomId).child('public/phase').val() === 'night-seer' && root.child('rooms').child($roomId).child('night').child(root.child('rooms').child($roomId).child('public/roundNumber').val()).child('seerTarget').val() === $uid))",
             ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
           }
         },
@@ -79,7 +79,7 @@
             },
             "seerResult": {
               ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer')",
-              ".write": "auth != null && auth.uid === root.child('rooms').child($roomId).child('public/host').val()"
+              ".write": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || (root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer' && root.child('rooms').child($roomId).child('public/phase').val() === 'night-seer'))"
             },
             "doctorSave": {
               ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'doctor')",

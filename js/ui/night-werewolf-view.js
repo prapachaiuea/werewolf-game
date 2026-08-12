@@ -39,13 +39,12 @@ export function render(state) {
     return;
   }
 
-  const { roomId, uid } = state;
+  const { roomId } = state;
   const round = state.public?.roundNumber;
   const isWerewolf = state.mySecret?.role === "werewolf";
-  const canSeeTarget = isWerewolf || state.isHost;
   const key = `${roomId}:${round}`;
 
-  if (canSeeTarget && subscribedKey !== key) {
+  if (isWerewolf && subscribedKey !== key) {
     teardown();
     subscribedKey = key;
     unsub = onValue(
@@ -117,14 +116,14 @@ function renderContent(state) {
     content.innerHTML = `<p class="spectate-note">🌙 หมาป่ากำลังเลือกเหยื่อ... หลับตาไว้</p>`;
   }
 
-  if (state.isHost) {
+  if (isWerewolf && isAlive) {
     btn.hidden = false;
-    btn.textContent = currentTarget ? "ไปยังหมอดู" : "รอหมาป่าเลือกเป้าหมาย...";
+    btn.textContent = "ยืนยันและไปต่อ";
     btn.disabled = !currentTarget;
   } else {
     btn.hidden = true;
   }
   hint.textContent = isWerewolf && isAlive
-    ? "แตะชื่อผู้เล่นที่จะเลือกเป็นเหยื่อคืนนี้"
+    ? "แตะชื่อผู้เล่นที่จะเลือกเป็นเหยื่อคืนนี้ แล้วกดยืนยันเมื่อพร้อม"
     : "";
 }

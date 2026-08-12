@@ -6,6 +6,7 @@ import { watchServerOffset, serverNow } from "./js/utils/timer.js";
 import { getLastName, getLastRoom, clearLastRoom } from "./js/utils/storage.js";
 import { showToast } from "./js/ui/components.js";
 import { unlockAudio, updateForState, isMuted, setMuted, playClick } from "./js/audio.js";
+import { watchForAutoResolve } from "./js/host-engine.js";
 
 import * as lobbyView from "./js/ui/lobby-view.js";
 import * as roleRevealView from "./js/ui/role-reveal-view.js";
@@ -38,6 +39,7 @@ async function boot() {
     renderRoute(state);
     views.forEach((v) => v.render(state));
     updateForState(state, { serverNow });
+    watchForAutoResolve(state);
   });
   setupLandingForm();
   setupMusicToggle();

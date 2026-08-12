@@ -61,10 +61,9 @@ export function render(state) {
   const { roomId } = state;
   const round = state.public?.roundNumber;
   const isSeer = state.mySecret?.role === "seer";
-  const canSee = isSeer || state.isHost;
   const key = `${roomId}:${round}`;
 
-  if (canSee && subscribedKey !== key) {
+  if (isSeer && subscribedKey !== key) {
     teardown();
     subscribedKey = key;
     const ignoreDenied = () => {};
@@ -94,7 +93,9 @@ function renderContent(state) {
   } else if (isSeer && currentResult) {
     const targetName = state.players?.[currentResult.targetUid]?.name || "ผู้เล่น";
     const verdict = currentResult.isWerewolf ? "เป็นหมาป่า 🐺" : "ไม่ใช่หมาป่า";
-    content.innerHTML = `<p class="spectate-note"><strong>${targetName}</strong> ${verdict}</p>`;
+    const hasDoctor = Boolean(state.public?.roles?.doctor);
+    const waitNote = hasDoctor ? "" : `<p class="spectate-note">รอสักครู่...</p>`;
+    content.innerHTML = `<p class="spectate-note"><strong>${targetName}</strong> ${verdict}</p>${waitNote}`;
   } else if (isSeer) {
     const players = Object.entries(state.players || {}).filter(
       ([uid, p]) => uid !== state.uid && p.alive !== false
@@ -125,14 +126,20 @@ function renderContent(state) {
     content.innerHTML = `<p class="spectate-note">🔮 หมอดูกำลังตรวจสอบ...</p>`;
   }
 
-  if (state.isHost) {
+  const hasDoctor = Boolean(state.public?.roles?.doctor);
+  if (isSeer && isAlive) {
     if (!currentResult) {
       btnReveal.hidden = false;
       btnReveal.disabled = !currentTarget;
       btnContinue.hidden = true;
-    } else {
+    } else if (hasDoctor) {
       btnReveal.hidden = true;
       btnContinue.hidden = false;
+    } else {
+      // No Doctor in this game — nothing left for the seer to trigger. The host's background
+      // watcher (host-engine.js) takes it from here the instant it sees seerResult.
+      btnReveal.hidden = true;
+      btnContinue.hidden = true;
     }
   } else {
     btnReveal.hidden = true;

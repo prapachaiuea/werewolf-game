@@ -15,6 +15,8 @@ let currentSceneKey = null;
 let lastPhase = null;
 let tensionTimerId = null;
 let currentTimerSnapshot = null; // { startAt, durationMs, serverNow } while the day timer runs
+let speechPrimed = false;
+let narrationTimeouts = [];
 
 function ensureContext() {
   if (ctx) return;
@@ -30,6 +32,21 @@ export function unlockAudio() {
   ensureContext();
   if (ctx.state === "suspended") ctx.resume();
   unlocked = true;
+  primeSpeech();
+}
+
+// Some mobile browsers (notably iOS Safari) only ever let speechSynthesis actually produce
+// sound if the very first utterance is spoken synchronously inside a real user gesture — every
+// later call to speak() happens from a Firebase state-change callback, not a click, so it would
+// otherwise be silently swallowed. Speaking one near-silent utterance right here, inside the
+// same click handler that calls unlockAudio(), "unlocks" every subsequent call for the rest of
+// the session.
+function primeSpeech() {
+  if (speechPrimed || !("speechSynthesis" in window)) return;
+  speechPrimed = true;
+  const warmup = new SpeechSynthesisUtterance(" ");
+  warmup.volume = 0;
+  window.speechSynthesis.speak(warmup);
 }
 
 export function isMuted() {
@@ -43,6 +60,7 @@ export function setMuted(next) {
     masterGain.gain.cancelScheduledValues(ctx.currentTime);
     masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.35, ctx.currentTime + 0.3);
   }
+  if (muted) clearNarration();
 }
 
 function noteEnvelope(freq, { start, duration, peak = 0.18, type = "sine", destination }) {
@@ -170,6 +188,69 @@ export function playHowl() {
   osc.stop(t + 1.3);
 }
 
+// Spoken narration cues (English, per design) that stand in for a human moderator telling the
+// table when to open/close their eyes. Plays on every connected device at once — deliberately,
+// since one phone's speaker rarely reaches everyone sitting around a real table. A bit of
+// overlap/echo between devices is an accepted trade-off for that reliability.
+//
+// MUST NEVER be used to speak anything secret (a role, a Seer result, who died) — only the
+// generic phase-timing lines below. Secret results stay text-only, on the one screen that's
+// allowed to see them.
+function speak(text) {
+  if (!unlocked || muted || !("speechSynthesis" in window)) return;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-US";
+  utterance.rate = 0.95;
+  window.speechSynthesis.speak(utterance);
+}
+
+function clearNarration() {
+  narrationTimeouts.forEach((id) => clearTimeout(id));
+  narrationTimeouts = [];
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+
+// `steps` is a list of { text, delay } — delay is milliseconds from when this sequence starts,
+// not from the previous line, so each entry stands on its own.
+function playNarrationSequence(steps) {
+  clearNarration();
+  steps.forEach(({ text, delay }) => {
+    narrationTimeouts.push(setTimeout(() => speak(text), delay));
+  });
+}
+
+// Works out what to say purely from the phase transition just observed — no secret data
+// involved. `hasDoctor` disambiguates the one case where leaving night-seer could mean two
+// different things (this game has a Doctor night left, or it doesn't and morning has come).
+function narrationForTransition(prevPhase, nextPhase, hasDoctor) {
+  if (nextPhase === "night-werewolf") {
+    return [
+      { text: "Night falls. Everyone, close your eyes.", delay: 0 },
+      { text: "Werewolves, open your eyes.", delay: 4000 },
+    ];
+  }
+  if (nextPhase === "night-seer") {
+    return [
+      { text: "Werewolves, close your eyes.", delay: 0 },
+      { text: "Seer, open your eyes.", delay: 2000 },
+    ];
+  }
+  if (nextPhase === "night-doctor") {
+    return [
+      { text: "Seer, close your eyes.", delay: 0 },
+      { text: "Doctor, open your eyes.", delay: 2000 },
+    ];
+  }
+  if (nextPhase === "day" && (prevPhase === "night-doctor" || prevPhase === "night-seer")) {
+    const closeLine = prevPhase === "night-doctor" ? "Doctor, close your eyes." : "Seer, close your eyes.";
+    return [
+      { text: closeLine, delay: 0 },
+      { text: "Morning has come.", delay: 4000 },
+    ];
+  }
+  return null;
+}
+
 function tensionBpm() {
   if (!currentTimerSnapshot) return 100;
   const { startAt, durationMs, serverNow } = currentTimerSnapshot;
@@ -205,11 +286,16 @@ export function updateForState(state, { serverNow } = {}) {
       : null;
 
   if (activePhase === lastPhase) return;
+  const previousPhase = lastPhase;
   lastPhase = activePhase;
 
   if (activePhase === "night-werewolf") playHowl();
   if (activePhase === "role-reveal") playSting([392.0, 493.88, 587.33], { duration: 1.2 }); // bright, curious
   if (activePhase === "game-over") playSting([261.63, 329.63, 392.0, 523.25], { duration: 2.0 }); // resolving chord
+
+  const hasDoctor = Boolean(state.public?.roles?.doctor);
+  const narration = narrationForTransition(previousPhase, activePhase, hasDoctor);
+  if (narration) playNarrationSequence(narration);
 
   const sceneKey = sceneKeyForPhase(activePhase);
   if (sceneKey !== currentSceneKey) {
