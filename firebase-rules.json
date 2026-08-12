@@ -81,6 +81,10 @@
               ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer')",
               ".write": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || (root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer' && root.child('rooms').child($roomId).child('public/phase').val() === 'night-seer'))"
             },
+            "seerReady": {
+              ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer')",
+              ".write": "auth != null && root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'seer' && root.child('rooms').child($roomId).child('public/phase').val() === 'night-seer'"
+            },
             "doctorSave": {
               ".read": "auth != null && (auth.uid === root.child('rooms').child($roomId).child('public/host').val() || root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'doctor')",
               ".write": "auth != null && root.child('rooms').child($roomId).child('secrets').child(auth.uid).child('role').val() === 'doctor' && root.child('rooms').child($roomId).child('public/phase').val() === 'night-doctor' && root.child('rooms').child($roomId).child('players').child(newData.val()).child('alive').val() === true"

@@ -10,6 +10,13 @@ let unsubResult = null;
 let subscribedKey = null;
 let currentTarget = null;
 let currentResult = null;
+// Local-only: has the seer already clicked "ไปต่อ" on this result? In games with no Doctor,
+// that click is what tells host-engine.js it's safe to resolve the night — without this gate,
+// the moment resolveSeerCheck() writes seerResult, the host's background watcher could react
+// and jump straight to morning before the seer's own screen even finishes showing them the
+// verdict. Requiring an explicit "ไปต่อ" (which also exists, unchanged, for the has-Doctor
+// case) guarantees the seer always gets a beat to actually read their result first.
+let seerConfirmedDone = false;
 
 export function init() {
   if (initialized) return;
@@ -34,6 +41,7 @@ export function init() {
     btn.disabled = true;
     try {
       await continueAfterSeerNight(roomId);
+      seerConfirmedDone = true;
     } catch {
       showToast("ไปต่อไม่สำเร็จ", true);
     } finally {
@@ -50,6 +58,7 @@ function teardown() {
   subscribedKey = null;
   currentTarget = null;
   currentResult = null;
+  seerConfirmedDone = false;
 }
 
 export function render(state) {
@@ -90,12 +99,12 @@ function renderContent(state) {
 
   if (!isAlive) {
     content.innerHTML = `<p class="spectate-note">คุณถูกกำจัดไปแล้ว — เฝ้าดูเกมต่อได้เงียบ ๆ</p>`;
+  } else if (isSeer && currentResult && seerConfirmedDone) {
+    content.innerHTML = `<p class="spectate-note">รอสักครู่...</p>`;
   } else if (isSeer && currentResult) {
     const targetName = state.players?.[currentResult.targetUid]?.name || "ผู้เล่น";
     const verdict = currentResult.isWerewolf ? "เป็นหมาป่า 🐺" : "ไม่ใช่หมาป่า";
-    const hasDoctor = Boolean(state.public?.roles?.doctor);
-    const waitNote = hasDoctor ? "" : `<p class="spectate-note">รอสักครู่...</p>`;
-    content.innerHTML = `<p class="spectate-note"><strong>${targetName}</strong> ${verdict}</p>${waitNote}`;
+    content.innerHTML = `<p class="spectate-note"><strong>${targetName}</strong> ${verdict}</p>`;
   } else if (isSeer) {
     const players = Object.entries(state.players || {}).filter(
       ([uid, p]) => uid !== state.uid && p.alive !== false
@@ -126,18 +135,17 @@ function renderContent(state) {
     content.innerHTML = `<p class="spectate-note">🔮 หมอดูกำลังตรวจสอบ...</p>`;
   }
 
-  const hasDoctor = Boolean(state.public?.roles?.doctor);
   if (isSeer && isAlive) {
     if (!currentResult) {
       btnReveal.hidden = false;
       btnReveal.disabled = !currentTarget;
       btnContinue.hidden = true;
-    } else if (hasDoctor) {
+    } else if (!seerConfirmedDone) {
+      // Shown for both the has-Doctor and no-Doctor case now — either way this is the seer's
+      // own deliberate "I've read it, move on" action, not something that fires on its own.
       btnReveal.hidden = true;
       btnContinue.hidden = false;
     } else {
-      // No Doctor in this game — nothing left for the seer to trigger. The host's background
-      // watcher (host-engine.js) takes it from here the instant it sees seerResult.
       btnReveal.hidden = true;
       btnContinue.hidden = true;
     }

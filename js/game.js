@@ -147,16 +147,25 @@ export async function resolveSeerCheck(roomId) {
   });
 }
 
-// night-seer -> night-doctor. Called by the seer once they've had a moment to read their
-// result off-screen. Only relevant when this game has a Doctor — if not, the seer's turn is
-// the last one for the night, and there's nothing left for a player to trigger: the host's
-// background watcher (host-engine.js) takes over the instant it sees seerResult, the same way
-// it does for the Doctor below.
+// Called by the seer once they've had a moment to actually read their result off-screen —
+// this is a deliberate click, never an automatic side effect of resolveSeerCheck(), precisely
+// so the seer always gets a beat to read the verdict before anything moves on.
+//
+// - If this game has a Doctor: advances night-seer -> night-doctor directly (the seer knows
+//   exactly what comes next, no need to involve the host).
+// - If not, the seer's turn is the last one for the night, and a player can't resolve that
+//   themselves — instead this just flags "the seer is done", which is what host-engine.js is
+//   watching for to run the night's resolution in the background.
 export async function continueAfterSeerNight(roomId) {
   const round = getState().public.roundNumber;
   const resultSnap = await get(ref(db, `rooms/${roomId}/night/${round}/seerResult`));
   if (!resultSnap.exists()) throw new Error("SEER_NOT_RESOLVED");
-  await update(ref(db, `rooms/${roomId}/public`), { phase: "night-doctor" });
+
+  if (getState().public.roles?.doctor) {
+    await update(ref(db, `rooms/${roomId}/public`), { phase: "night-doctor" });
+  } else {
+    await update(ref(db), { [`rooms/${roomId}/night/${round}/seerReady`]: true });
+  }
 }
 
 // Shared tail end of both a night and a day-vote: given the final players/roles state for

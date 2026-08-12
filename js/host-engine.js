@@ -56,7 +56,10 @@ export function watchForAutoResolve(state) {
   if (phase === "night-doctor") {
     armWatcher(state.roomId, round, "doctorSave");
   } else if (phase === "night-seer" && !hasDoctor) {
-    armWatcher(state.roomId, round, "seerResult");
+    // Not seerResult — that lands the instant resolveSeerCheck() runs, before the seer's own
+    // screen has necessarily shown them the verdict yet. seerReady only appears once the seer
+    // has explicitly clicked "ไปต่อ" after reading it (see continueAfterSeerNight in game.js).
+    armWatcher(state.roomId, round, "seerReady");
   } else {
     teardown();
   }
