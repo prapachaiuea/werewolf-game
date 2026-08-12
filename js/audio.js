@@ -226,26 +226,26 @@ function narrationForTransition(prevPhase, nextPhase, hasDoctor) {
   if (nextPhase === "night-werewolf") {
     return [
       { text: "Night falls. Everyone, close your eyes.", delay: 0 },
-      { text: "Werewolves, open your eyes.", delay: 4000 },
+      { text: "Werewolves, open your eyes.", delay: 7000 },
     ];
   }
   if (nextPhase === "night-seer") {
     return [
       { text: "Werewolves, close your eyes.", delay: 0 },
-      { text: "Seer, open your eyes.", delay: 2000 },
+      { text: "Seer, open your eyes.", delay: 5000 },
     ];
   }
   if (nextPhase === "night-doctor") {
     return [
       { text: "Seer, close your eyes.", delay: 0 },
-      { text: "Doctor, open your eyes.", delay: 2000 },
+      { text: "Doctor, open your eyes.", delay: 5000 },
     ];
   }
   if (nextPhase === "day" && (prevPhase === "night-doctor" || prevPhase === "night-seer")) {
     const closeLine = prevPhase === "night-doctor" ? "Doctor, close your eyes." : "Seer, close your eyes.";
     return [
       { text: closeLine, delay: 0 },
-      { text: "Morning has come.", delay: 4000 },
+      { text: "Morning has come.", delay: 7000 },
     ];
   }
   return null;

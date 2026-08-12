@@ -30,6 +30,8 @@ Every phase transition is deliberately handed to whoever should naturally be the
 | Day vote → next night / game over | The host |
 | Hunter's revenge shot → resume | The host |
 
+If the Seer or Doctor died on an earlier night or day-vote, there's nobody left who's allowed to act (or even to advance) during their phase later on — so the host's background engine also checks, the instant it enters night-seer or night-doctor, whether that role's holder is even alive, and silently skips straight past their turn if not (no player action needed, and no role gets revealed by the skip itself).
+
 The one step nobody can trigger themselves is the actual **resolution of a night** (comparing the Werewolves' target against the Doctor's save, and checking the win condition) — that requires knowing every player's role at once, which only the host's browser is allowed to read (see below). Rather than making the host tap a button for it, the Doctor's own confirm (or the Seer's, in games with no Doctor) is itself the signal: the host's browser is silently listening in the background and runs the resolution the instant it sees that data land, with zero interaction from the host. From the table's perspective, the game just... moves on to morning on its own.
 
 ## Known limitation: host trust

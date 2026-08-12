@@ -51,7 +51,10 @@ function assignRoles(uids, tier) {
   return roles;
 }
 
-async function readRolesMap(roomId, uids) {
+// Exported for host-engine.js — it needs to know whether a specific role's holder is still
+// alive (to skip their phase entirely if not), which means finding out who holds that role in
+// the first place. Only ever called from the host's own client.
+export async function readRolesMap(roomId, uids) {
   const entries = await Promise.all(
     uids.map(async (uid) => {
       const snap = await get(ref(db, `rooms/${roomId}/secrets/${uid}`));
